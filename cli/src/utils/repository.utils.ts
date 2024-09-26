@@ -35,7 +35,7 @@ export class RepositoryUtils {
             if (repoUrlRegexResult) {
                 const repoUrlRegexResultSplit = repoUrlRegexResult[0].split(/\//);
                 repoName = repoUrlRegexResultSplit[repoUrlRegexResultSplit.length - 1].replace('.git', '');
-                uiUtils.info({ origin: 'RepositoryUtils', message: `Wotking with "${repoName}"` });
+                uiUtils.info({ origin: 'RepositoryUtils', message: `Working with "${repoName}"` });
             }
         }
         return repoName;

@@ -45,6 +45,7 @@ const main = async () => {
                     { name: 'remove', alias: 'r', type: Boolean, description: 'Remove tag' },
                     { name: 'value', alias: 'u', type: String, description: 'Value' },
                     { name: 'filter', alias: 'f', type: String, description: 'field / regex filter to apply to the commands' },
+                    { name: 'parameters', alias: 'p', type: String, description: 'Stringified JSON of parameter to override' },
                 ]
                 const dbOptions = commandLineArgs(dbOptionsDefinitions, { argv, stopAtFirstUnknown: true });
                 switch (dbOptions.action) {
@@ -79,7 +80,8 @@ const main = async () => {
                         await DatabaseInstaller.installDatabase({
                             applicationName: dbOptions['application-name'],
                             environment: dbOptions.environment,
-                            version: dbOptions.version
+                            version: dbOptions.version,
+                            parametersToOverride: JSON.parse(dbOptions.parameters ?? 'null')
                         }, loggerUtils);
                         break;
                     case 'create-table':

@@ -249,7 +249,7 @@ export class DatabaseTemplates {
             const hasReplication = !!sourceDatabaseObject.trigger[`${sourceDatabaseObject._properties.dbName}tr_${sourceDatabaseObject.table[params.tableName].tableSuffix}_replication`]
 
             if (!hasReplication) {
-                throw `This table is not yet duplicated. you can set it up by running "am db replication-from -o ${params.tableName}" on the source database.`;
+                throw `This table is not yet duplicated. you can set it up by running "bam db replication-from -o ${params.tableName}" on the source database.`;
             }
 
             // the table is available for replication, we will now create the duplication code

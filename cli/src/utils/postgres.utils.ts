@@ -2,8 +2,8 @@ import PGP from 'pg-promise';
 import { UiUtils } from './ui.utils';
 
 export class PostgresUtils {
-    db: any;
-    pgp: any;
+    db?: PGP.IDatabase<any>;
+    pgp: PGP.IMain;
     private connectionString: string;
     connections: {
         [connectionString: string]: any
@@ -31,6 +31,10 @@ export class PostgresUtils {
     }
 
     async execute(sql: string, data?: any): Promise<any> {
+        if (!this.db) {
+            throw 'No database connection found. Have you called PostgresUtils.setConnectionString beforehand.';
+        }
+
         if (data) {
             return this.db.any(sql, data);
         } else {
@@ -40,6 +44,10 @@ export class PostgresUtils {
 
     executeFunction(sql: string, data?: any[]): Promise<any> {
         return new Promise((resolve, reject) => {
+            if (!this.db) {
+                throw 'No database connection found. Have you called PostgresUtils.setConnectionString beforehand.';
+            }
+
             if (data) {
                 this.db.func(sql, data)
                     .then((data: any) => {
@@ -80,7 +88,7 @@ export class PostgresUtils {
     }
 
     endAllConnections() {
-        this.db = null;
+        this.db = undefined;
         for (let key of Object.keys(this.connections)) {
             this.connections[key]?.$pool?.end();
             this.connections[key] = undefined;
