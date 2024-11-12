@@ -5,6 +5,7 @@ import {RepositoryUtils} from '../../utils/repository.utils';
 import {UiUtils} from '../../utils/ui.utils';
 import {DatabaseHelper} from './database-helper';
 import {ConnectionString} from 'connection-string';
+import {SecretOptions, SecretsManager} from '../secrets/secrets-manager';
 
 export class DatabaseInstaller {
   private static _origin = 'DatabaseInstaller';
@@ -71,16 +72,14 @@ export class DatabaseInstaller {
     }
 
     // Handling variables from ssm or secretsmanager
+    const secretsManager = new SecretsManager();
     const transformerRegex = new RegExp(/^(\s+)?(?<service>ssm|secretsmanager)(\((\s+)?(?<profile>[A-z0-9_-]+)(\s+)?(,(\s+)?(?<region>[A-z0-9_-]+)?(\s+)?)?\)(\s+)?)?:(\s+)?(?<parameter>.*)(\s+)?/i);
-
-    const parameters = Object.entries(fileParameters[params.environment])
-    for (let [key, value] of parameters) {
+    for (let [key, value] of Object.entries(fileParameters[params.environment])) {
       const matches = value.match(transformerRegex);
-      console.log(key, value, matches);
-
-      new SSMClient
+      if (matches) {
+        fileParameters[params.environment][key] = await secretsManager.getSecret(value, matches.groups as unknown as SecretOptions);
+      }
     }
-
 
     // we get the database objects again after we read the repo
     // get the db as object to get the params
@@ -182,7 +181,7 @@ export class DatabaseInstaller {
             connectionString.setDefaults({
               user: 'root',
               password: fileParameters[params.environment].password_root,
-              path: [subVersion.databaseToUse]
+              path: [subVersion.databaseToUse],
             });
             DatabaseInstaller.postgresUtils.setConnectionString(connectionString.toString(), uiUtils);
           } else {
@@ -190,7 +189,7 @@ export class DatabaseInstaller {
             connectionString.setDefaults({
               user: 'root',
               password: fileParameters[params.environment].password_root,
-              path: [`${params.environment}_${databaseObject._properties.dbName}`]
+              path: [`${params.environment}_${databaseObject._properties.dbName}`],
             });
             DatabaseInstaller.postgresUtils.setConnectionString(connectionString.toString(), uiUtils);
           }

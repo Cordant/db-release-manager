@@ -12,6 +12,7 @@
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.687.0",
     "@aws-sdk/client-ssm": "^3.687.0",
+    "@aws-sdk/credential-providers": "^3.687.0",
     "axios": "^1.7.7",
     "body-parser": "^1.19.2",
     "cli-progress": "^3.10.0",
