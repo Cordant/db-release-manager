@@ -1,11 +1,20 @@
-import { FileUtils } from "../../utils/file.utils";
+import {FileUtils} from '../../utils/file.utils';
 import path from 'path';
 import colors from 'colors';
-import { DatabaseVersionFile, DatabaseObject, DatabaseTable, DatabaseFile, DatabaseSubObject, DatabaseFunction, DatabaseDataScript, DatabaseLocalReplicatedTable } from "../../models/database-file.model";
-import { DatabaseHelper } from "./database-helper";
-import { UiUtils } from "../../utils/ui.utils";
-import { RepositoryUtils } from "../../utils/repository.utils";
-import { ServerUtils } from "../../utils/server.utils";
+import {
+    DatabaseDataScript,
+    DatabaseFile,
+    DatabaseFunction,
+    DatabaseLocalReplicatedTable,
+    DatabaseObject,
+    DatabaseSubObject,
+    DatabaseTable,
+    DatabaseVersionFile,
+} from '../../models/database-file.model';
+import {DatabaseHelper} from './database-helper';
+import {UiUtils} from '../../utils/ui.utils';
+import {RepositoryUtils} from '../../utils/repository.utils';
+import {ServerUtils} from '../../utils/server.utils';
 
 interface DatabaseStructureNode {
     fileName?: string;
@@ -292,11 +301,13 @@ export class DatabaseRepositoryReader {
 
 
         // get the db name from the drop script if we have one
-        if (databaseObject.setup['01-drop-database']) {
-            const fileContent = await FileUtils.readFile(databaseObject.setup['01-drop-database'].latestFile);
+        const dropDbScriptName = Object.keys(databaseObject.setup).find((f) => f.match(/^[0-9]{1,2}-drop-database/));
+        if (dropDbScriptName) {
+            const fileContent = await FileUtils.readFile(databaseObject.setup[dropDbScriptName].latestFile);
             const dbMatched = fileContent.match(/\<env\>_[a-z][a-z0-9]{1,2}/i);
             if (dbMatched) {
                 databaseObject._properties.dbName = dbMatched[0].replace('<env>_', '');
+                uiUtils.info({ origin: DatabaseRepositoryReader._origin, message: 'DB Name set to ' +  databaseObject._properties.dbName});
             }
         }
         // latest version
@@ -313,6 +324,7 @@ export class DatabaseRepositoryReader {
             Object.keys(databaseObject.table)[0];
             if (dbNameRegex) {
                 databaseObject._properties.dbName = dbNameRegex[1];
+                uiUtils.info({ origin: DatabaseRepositoryReader._origin, message: 'DB Name set to ' +  databaseObject._properties.dbName});
             }
         }
 

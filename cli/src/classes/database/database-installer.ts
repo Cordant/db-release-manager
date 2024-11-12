@@ -33,7 +33,7 @@ export class DatabaseInstaller {
     // get the application and its versions
     let databaseData = await DatabaseHelper.getApplicationDatabaseFiles(params.applicationName);
     if (!databaseData || !databaseObject) {
-      throw 'Invalid application name. Please run the "am repo read" command in the desired folder beforehand.';
+      throw 'Invalid application name. Please run the "bam repo read" command in the desired folder beforehand.';
     }
 
     // await DatabaseRepositoryReader.readRepo(params.applicationName, databaseObject._properties.path, uiUtils);
@@ -48,7 +48,7 @@ export class DatabaseInstaller {
 
     const tempParameters = await DatabaseHelper.getApplicationDatabaseParameters(params.applicationName);
     const fileParameters = {
-      ...tempParameters,
+      // ...tempParameters, // if we need the values from other environment we need to uncomment this
       [params.environment]: {
         ...tempParameters[params.environment],
         ...(params.parametersToOverride ?? {}),
@@ -69,6 +69,18 @@ export class DatabaseInstaller {
       }
       await DatabaseHelper.updateApplicationDatabaseParameters(params.applicationName, fileParameters);
     }
+
+    // Handling variables from ssm or secretsmanager
+    const transformerRegex = new RegExp(/^(\s+)?(?<service>ssm|secretsmanager)(\((\s+)?(?<profile>[A-z0-9_-]+)(\s+)?(,(\s+)?(?<region>[A-z0-9_-]+)?(\s+)?)?\)(\s+)?)?:(\s+)?(?<parameter>.*)(\s+)?/i);
+
+    const parameters = Object.entries(fileParameters[params.environment])
+    for (let [key, value] of parameters) {
+      const matches = value.match(transformerRegex);
+      console.log(key, value, matches);
+
+      new SSMClient
+    }
+
 
     // we get the database objects again after we read the repo
     // get the db as object to get the params
@@ -165,12 +177,12 @@ export class DatabaseInstaller {
             message: `Installing ${params.applicationName} ${version.versionName}${version.versions.length > 1 ? ` (${j + 1} of ${version.versions.length})` : ''}`,
           });
           const subVersion = version.versions[j];
-          if (subVersion.databaseToUse === 'postgres') {
+          if (subVersion.databaseToUse) {
             const connectionString = new ConnectionString(`postgres://${fileParameters[params.environment].server || 'localhost'}:5432`);
             connectionString.setDefaults({
               user: 'root',
               password: fileParameters[params.environment].password_root,
-              path: ['postgres']
+              path: [subVersion.databaseToUse]
             });
             DatabaseInstaller.postgresUtils.setConnectionString(connectionString.toString(), uiUtils);
           } else {
@@ -201,7 +213,7 @@ export class DatabaseInstaller {
               if (!fileString) {
                 uiUtils.warning({
                   origin: DatabaseInstaller._origin,
-                  message: `File "${fileString}" is empty - ignoring`,
+                  message: `File "${file.fileName}" is empty - ignoring`,
                 });
               } else {
                 await DatabaseInstaller.postgresUtils.execute(fileString);
