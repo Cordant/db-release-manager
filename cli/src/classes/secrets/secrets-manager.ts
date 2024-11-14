@@ -2,12 +2,14 @@ import {GetParameterCommand, SSMClient} from '@aws-sdk/client-ssm';
 import {GetSecretValueCommand} from '@aws-sdk/client-secrets-manager';
 import {fromIni} from '@aws-sdk/credential-providers';
 import {SecretsManagerClient} from '@aws-sdk/client-secrets-manager';
+import jp from 'jsonpath';
 
 export interface SecretOptions {
-  service: 'ssm' | 'secretsmanager',
-  parameter: string
-  region?: string | undefined,
-  profile?: string | undefined,
+  service: 'ssm' | 'secretsmanager' | string;
+  parameter: string;
+  region?: string | undefined;
+  profile?: string | undefined;
+  jsonPath?: string | undefined;
 }
 
 export class SecretsManager {
@@ -17,31 +19,34 @@ export class SecretsManager {
   secretsManagerClients: { [profile: string]: SecretsManagerClient; } = {default: new SecretsManagerClient({})};
 
   async getSecret(identifier: string, options: SecretOptions) {
-    console.log(options);
     switch (options.service) {
       case 'ssm':
         if (this.secrets[identifier]) {
           return this.secrets[identifier].value;
         }
 
+        const parameter = await this.getSSMParameter(options.parameter, options.profile, options.region);
+        let parameterValue = parameter;
+        if (options.jsonPath) {
+          parameterValue = jp.query(JSON.parse(parameter), options.jsonPath)[0];
+        }
         this.secrets = {
           ...this.secrets,
-          [identifier]: {
-            ...options,
-            value: await this.getSSMParameter(options.parameter, options.profile, options.region),
-          },
+          [identifier]: {...options, value: parameterValue},
         };
         return this.secrets[identifier].value;
       case 'secretsmanager':
         if (this.secrets[identifier]) {
           return this.secrets[identifier].value;
         }
+        const secret = await this.getSecretsManagerParameter(options.parameter, options.profile, options.region)
+        let secretValue = secret;
+        if (options.jsonPath) {
+          secretValue = jp.query(JSON.parse(secret), options.jsonPath)[0];
+        }
         this.secrets = {
           ...this.secrets,
-          [identifier]: {
-            ...options,
-            value: await this.getSecretsManagerParameter(options.parameter, options.profile, options.region),
-          },
+          [identifier]: {...options, value: secretValue},
         };
         return this.secrets[identifier].value;
       default:

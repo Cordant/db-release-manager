@@ -72,12 +72,28 @@ export class DatabaseInstaller {
     }
 
     // Handling variables from ssm or secretsmanager
+    uiUtils.info({
+      origin: DatabaseInstaller._origin,
+      message: 'Handling secrets retrieval!',
+    });
     const secretsManager = new SecretsManager();
-    const transformerRegex = new RegExp(/^(\s+)?(?<service>ssm|secretsmanager)(\((\s+)?(?<profile>[A-z0-9_-]+)(\s+)?(,(\s+)?(?<region>[A-z0-9_-]+)?(\s+)?)?\)(\s+)?)?:(\s+)?(?<parameter>.*)(\s+)?/i);
+    const transformerRegex = new RegExp(/^(\s+)?(?<service>ssm|secretsmanager)(\((\s+)?(?<profile>[A-z0-9_-]+)(\s+)?(,(\s+)?(?<region>[A-z0-9_-]+)?(\s+)?)?\)(\s+)?)?:(\s+)?(?<parameter>(.+(?=::)|.+))(\s+)?(::(?<jsonPath>.*))?/i);
     for (let [key, value] of Object.entries(fileParameters[params.environment])) {
       const matches = value.match(transformerRegex);
       if (matches) {
-        fileParameters[params.environment][key] = await secretsManager.getSecret(value, matches.groups as unknown as SecretOptions);
+        const {service, profile, region, parameter, jsonPath} = matches?.groups ?? {};
+        if (!service || !parameter) {
+          throw new Error('Syntax error for secret variable!');
+        }
+
+        fileParameters[params.environment][key] = await secretsManager.getSecret(value, {
+          service,
+          profile,
+          region,
+          parameter,
+          jsonPath,
+        });
+
       }
     }
 
