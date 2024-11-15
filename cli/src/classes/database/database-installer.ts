@@ -93,7 +93,6 @@ export class DatabaseInstaller {
           parameter,
           jsonPath,
         });
-
       }
     }
 
@@ -197,7 +196,7 @@ export class DatabaseInstaller {
             connectionString.setDefaults({
               user: 'root',
               password: fileParameters[params.environment].password_root,
-              path: [subVersion.databaseToUse],
+              path: [DatabaseInstaller.replaceParameters(subVersion.databaseToUse, fileParameters[params.environment])],
             });
             DatabaseInstaller.postgresUtils.setConnectionString(connectionString.toString(), uiUtils);
           } else {
@@ -267,12 +266,13 @@ export class DatabaseInstaller {
                   break;
               }
             }
-            uiUtils.progress(k + 1);
+            uiUtils.progress(k + 1, subVersion.files[k + 1]?.fileName);
           }
           uiUtils.stoprProgress();
         }
       }
     } catch (error: any) {
+      console.log(error);
       uiUtils.error({origin: DatabaseInstaller._origin, message: error.toString()});
       DatabaseInstaller.postgresUtils.endAllConnections();
       process.exit(1);
@@ -283,5 +283,14 @@ export class DatabaseInstaller {
       }
       DatabaseInstaller.postgresUtils.endAllConnections();
     }
+  }
+
+  static replaceParameters(value: string, parameters: {[key: string]: string}) {
+    let temp = value;
+    for (let [key, parameter] of Object.entries(parameters)) {
+      const regex = new RegExp(`\<${key}\>`, 'gi');
+      temp = temp.replace(regex, parameter);
+    }
+    return temp;
   }
 }

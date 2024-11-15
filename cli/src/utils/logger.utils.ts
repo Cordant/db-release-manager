@@ -164,14 +164,14 @@ export class LoggerUtils extends UiUtils {
     }
     startProgress(params: {length: number; start: number; title: string}) {
         this.bar = new Bar({
-            format: `${params.title}  [{bar}] {percentage}% | ETA: {eta}s | {value}/{total}`,
+            format: `${params.title}  [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} {message} `,
             clearOnComplete: true
         }, Presets.shades_grey);
-        this.bar.start(params.length, params.start);
+        this.bar.start(params.length, params.start, {message: ''});
     }
-    progress(params: number) {
+    progress(params: number, message?: string) {
         if (this.bar) {
-            this.bar.update(params);
+            this.bar.update(params, {message: message ? '- ' + message : ''});
         }
     }
     stoprProgress() {
