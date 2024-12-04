@@ -55,7 +55,7 @@ export class DatabaseInstaller {
         ...(params.parametersToOverride ?? {}),
       },
     };
-    if (!fileParameters[params.environment] || !fileParameters[params.environment].password_root || fileParameters[params.environment].server) {
+    if (!fileParameters[params.environment]?.password_root || !fileParameters[params.environment]?.server) {
       while (!fileParameters[params.environment].password_root) {
         fileParameters[params.environment].password_root = await uiUtils.question({
           origin: DatabaseInstaller._origin,
@@ -68,7 +68,14 @@ export class DatabaseInstaller {
           text: 'Please provide the server',
         });
       }
-      await DatabaseHelper.updateApplicationDatabaseParameters(params.applicationName, fileParameters);
+
+      await DatabaseHelper.updateApplicationDatabaseParameters(params.applicationName, {
+        [params.environment]: {
+          ...tempParameters[params.environment],
+          password_root: fileParameters[params.environment].password_root,
+          server: fileParameters[params.environment].server,
+        }
+      });
     }
 
     // Handling variables from ssm or secretsmanager
@@ -219,7 +226,12 @@ export class DatabaseInstaller {
             if (paramsPerFile[file.fileName]) {
               for (let l = 0; l < paramsPerFile[file.fileName].length; l++) {
                 const parameter = paramsPerFile[file.fileName][l];
-                const paramRegex = new RegExp(`\<${parameter.paramName}\>`, 'gi');
+                if (!parameter.value) {
+                  // Only replace if value for parameter was provided
+                  continue;
+                }
+
+                const paramRegex = new RegExp(`\$\{${parameter.paramName}\}`, 'gi');
                 fileString = fileString.replace(paramRegex, parameter.value);
               }
             }
@@ -277,18 +289,18 @@ export class DatabaseInstaller {
       DatabaseInstaller.postgresUtils.endAllConnections();
       process.exit(1);
     } finally {
-      if (params.parametersToOverride) {
-        uiUtils.info({origin: DatabaseInstaller._origin, message: 'Restoring parameters!'});
-        await DatabaseHelper.updateApplicationDatabaseParameters(params.applicationName, tempParameters);
-      }
       DatabaseInstaller.postgresUtils.endAllConnections();
     }
   }
 
-  static replaceParameters(value: string, parameters: {[key: string]: string}) {
+  static replaceParameters(value: string, parameters: { [key: string]: string }) {
     let temp = value;
     for (let [key, parameter] of Object.entries(parameters)) {
-      const regex = new RegExp(`\<${key}\>`, 'gi');
+      if (!parameter) {
+        continue;
+      }
+
+      const regex = new RegExp(`\$\{${key}\}`, 'gi');
       temp = temp.replace(regex, parameter);
     }
     return temp;

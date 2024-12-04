@@ -117,8 +117,8 @@ export class DatabaseTableField {
         this.camelCasedName = '';
         this.type = field.split[1];
         this.notNull = field.fullText.indexOf('not null') > -1;
-        this.tags = (field.fullText.match(/#[a-z-]+(=[\[|\(]?[a-zA-Z0-9-_' ,]+[\]|\)]?)?/gi) || [])
-            .reduce((agg, current) => {
+        this.tags = (field.fullText.match(/#[a-z-]+(=[\[|\(]?[a-zA-Z0-9-_' ,]+[\]|\)]?)?/gi) ?? [])
+          .reduce((agg: {[key: string]: Tag}, current: string) => {
                 const tag = new Tag(current);
                 return {
                     ...agg,
@@ -351,8 +351,8 @@ export class DatabaseTable extends DatabaseSubObject {
             }
         }
         const stringBeforeCreate = tableFile.substr(0, tableFile.indexOf('create'));
-        this.tags = (stringBeforeCreate.match(/#[a-z-]+(=[\[|\(]?[a-zA-Z0-9-_' ,]+[\]|\)]?)?/gi) || [])
-            .reduce((agg, current) => {
+        this.tags = (stringBeforeCreate.match(/#[a-z-]+(=[\[|\(]?[a-zA-Z0-9-_' ,]+[\]|\)]?)?/gi) ?? [])
+          .reduce((agg: {[key: string]: Tag}, current: string) => {
                 const tag = new Tag(current);
                 return {
                     ...agg,
@@ -453,8 +453,8 @@ export class DatabaseLocalReplicatedTable extends DatabaseSubObject {
             }
         }
         const stringBeforeCreate = tableFile.substr(0, tableFile.indexOf('create'));
-        this.tags = (stringBeforeCreate.match(/#[a-z-]+(=[\[|\(]?[a-zA-Z0-9-_' ,]+[\]|\)]?)?/gi) || [])
-            .reduce((agg, current) => {
+        this.tags = (stringBeforeCreate.match(/#[a-z-]+(=[\[|\(]?[a-zA-Z0-9-_' ,]+[\]|\)]?)?/gi) ?? [])
+          .reduce((agg: {[key: string]: Tag}, current: string) => {
                 const tag = new Tag(current);
                 return {
                     ...agg,

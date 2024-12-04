@@ -4,12 +4,16 @@
   "description": "mock aws services locally",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "install-cli": "node install.js"
   },
   "author": "",
   "license": "ISC",
   "bin": {
     "bam": "./cli/build/main.js",
     "bert-app-manager": "./cli/build/main.js"
+  },
+  "dependencies": {
+    "@types/node": "^18.19.67",
+    "typescript": "^5.7.2"
   }
 }

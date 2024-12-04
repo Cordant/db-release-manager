@@ -17,9 +17,11 @@ import { LoggerUtils } from './utils/logger.utils';
 import { mainHelp, databaseHelp } from './utils/documentation.utils';
 import { ServerlessRepositoryReader } from './classes/serverless/serverless-repo-reader';
 import { CliFiles } from './classes/cli-files/cli-files';
+import * as fs from 'node:fs';
 
-const mainOptions = [
-    { name: 'category', alias: 'z', type: String, defaultOption: true, description: 'Action' },
+const mainOptions: commandLineArgs.OptionDefinition[] = [
+    { name: 'category', alias: 'z', type: String, defaultOption: true},
+    { name: 'version', alias: 'v', type: Boolean},
 ];
 
 const options: CommandLineOptions = commandLineArgs(mainOptions, { stopAtFirstUnknown: true });
@@ -28,6 +30,12 @@ let argv = options._unknown || [];
 const loggerUtils = new LoggerUtils();
 
 const main = async () => {
+    if (options.version) {
+        const packageJson = JSON.parse(fs.readFileSync('../package.json').toString());
+        console.log(`v${packageJson.version}`);
+        return
+    }
+
     try {
         switch (options.category) {
             case 'db':
