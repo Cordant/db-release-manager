@@ -334,7 +334,7 @@ export class DatabaseRepositoryReader {
                 return version.files.map(file => file.fileName);
             }).reduce((agg, curr) => agg.concat(curr), [])
         }).reduce((agg, curr) => agg.concat(curr), []);
-        const variableRegex = new RegExp(/\<(\w+)\>/gim);
+        const variableRegex = new RegExp(/\$\{(\w+)}/gim);
         const variablesPerFiles: { [name: string]: string[] } = {};
 
         uiUtils.startProgress({
@@ -352,7 +352,7 @@ export class DatabaseRepositoryReader {
                     const startArray: string[] = [];
                     const variablesForFile = variablesArray
                         .reduce((agg, curr) => (agg.indexOf(curr) > -1 ? agg : [...agg, curr]), startArray)
-                        .map((x: string) => x.substr(1, x.length - 2));
+                        .map((x: string) => x.substring(2, x.length - 1));
                     for (let j = 0; j < variablesForFile.length; j++) {
                         const variable = variablesForFile[j];
                         if (!variablesPerFiles[variable]) {
@@ -382,6 +382,7 @@ export class DatabaseRepositoryReader {
         FileUtils.createFolderStructureIfNeeded(DatabaseHelper.tempFolderPath);
         let fileDataDatabaseObject: { [name: string]: DatabaseObject } = {};
         if (FileUtils.checkIfFolderExists(DatabaseHelper.postgresDbDataPath)) {
+            console.log(DatabaseHelper.postgresDbDataPath);
             fileDataDatabaseObject = await FileUtils.readJsonFile(DatabaseHelper.postgresDbDataPath);
         }
         let databasesToCheck = Object.keys(fileDataDatabaseObject);

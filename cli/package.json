@@ -1,7 +1,7 @@
 {
-  "name": "aws-mock-cli",
+  "name": "db-release-manager-cli",
   "version": "0.0.1",
-  "description": "aws mock cli",
+  "description": "DB Release Manager CLI",
   "main": "build/main.js",
   "scripts": {
     "build": "npx tsc"

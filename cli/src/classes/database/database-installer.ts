@@ -231,7 +231,7 @@ export class DatabaseInstaller {
                   continue;
                 }
 
-                const paramRegex = new RegExp(`\$\{${parameter.paramName}\}`, 'gi');
+                const paramRegex = new RegExp(`\\$\{${parameter.paramName}}`, 'g');
                 fileString = fileString.replace(paramRegex, parameter.value);
               }
             }
@@ -300,9 +300,10 @@ export class DatabaseInstaller {
         continue;
       }
 
-      const regex = new RegExp(`\$\{${key}\}`, 'gi');
+      const regex = new RegExp(`\\$\{${key}}`, 'gi');
       temp = temp.replace(regex, parameter);
     }
+    console.log(temp);
     return temp;
   }
 }

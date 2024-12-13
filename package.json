@@ -1,7 +1,7 @@
 {
-  "name": "aws-mock",
+  "name": "db-release-manager",
   "version": "0.0.1",
-  "description": "mock aws services locally",
+  "description": "DB Release Manager",
   "main": "index.js",
   "scripts": {
     "install-cli": "node install.js"

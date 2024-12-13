@@ -316,7 +316,7 @@ export class DatabaseFileHelper {
 
                   break;
               }
-              fileString = fileString.replace(new RegExp(`<${param}>`, 'gi'), valueToReplaceWith);
+              fileString = fileString.replace(new RegExp(`\$\{${param}\}`, 'gi'), valueToReplaceWith);
             }
 
             let writeFile = true;
