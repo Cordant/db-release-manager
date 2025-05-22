@@ -2,10 +2,11 @@
 
 Because it's cool
 
-```sh
-npm link && bam help
-```
 
+## New installation 
+```
+npm run install-cli
+```
 ## How does it work
 
 I don't quite know, it's like magic, but enhanced
@@ -91,3 +92,6 @@ actions: save (deals with update and insert), delete, get, list
   - [x] read version files on install (version files only), and check file orders
   - [x] pass the uiUtils object to the lower levels (for later integration)
   - [x] check connection parameters on DB installtion
+
+
+
