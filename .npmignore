@@ -1,0 +1,7 @@
+.idea/
+.vscode/
+src/
+example-project/
+requirements/
+jest.config.ts
+clean-build.js

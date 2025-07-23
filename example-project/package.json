@@ -1,0 +1,8 @@
+{
+  "name": "example-project",
+  "description": "Example project to test bam functionality",
+  "version": "0.1.0",
+  "dependencies": {
+    "@connect/bam": "file:.."
+  }
+}

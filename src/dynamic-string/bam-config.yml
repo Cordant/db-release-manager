@@ -1,0 +1,10 @@
+stage: '${opt:stage, dev}'
+client: '${opt:client, connect}'
+database:
+  host: 'local-bituhh.ddns.net'
+  username: 'postgres'
+  password: '140496'
+env:
+  app_user:
+    name: cad_${self:stage}_${self:client}_user
+    password: '${ssm:/cad/${self:stage}/database/password}'

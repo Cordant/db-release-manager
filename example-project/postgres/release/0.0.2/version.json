@@ -1,0 +1,11 @@
+[
+  {
+    "databaseToUse": "postgres",
+    "fileList": [
+      "..//postgres/schema/07-functions/error.sql"
+    ],
+    "removedFiles": [
+      "..//postgres/schema/07-functions/test.sql"
+    ]
+  }
+]

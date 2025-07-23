@@ -1,0 +1,10 @@
+[
+  {
+    "databaseToUse": "postgres",
+    "fileList": [
+      "..//postgres/schema/07-functions/empty.sql",
+      "..//postgres/schema/07-functions/test.sql",
+      "..//postgres/schema/07-functions/error.sql"
+    ]
+  }
+]

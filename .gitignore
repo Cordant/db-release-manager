@@ -1,13 +1,3 @@
-
-cli/node_modules/
-
-server/node_modules/
-
-server/build/
-
-cli/build/
-
 temp/
-
-graphql/node_modules/
+dist/
 node_modules
