@@ -3,8 +3,10 @@ import * as _ from 'lodash-es';
 import {logger} from '../console/logger.js';
 import {Database} from '../database/database.js';
 import {DynamicString} from '../dynamic-string/index.js';
-import {initCommand, promptInitCommand} from '../commands/index.js';
+import {promptInitCommand} from '../commands/index.js';
 import {RestartInstallationException} from '../exceptions/index.js';
+import * as inquirer from '@inquirer/prompts';
+import {optionsCache} from '../options/options-cache.js';
 
 export interface VersionJsonOptions {
   databaseToUse: string;
@@ -101,21 +103,22 @@ export class VersionJsonManager {
           throw error;
         }
 
+        if (!optionsCache.has('opt:ci') && version !== 'schema') {
+          const response = await inquirer.confirm({
+            message: `As the database "${databaseToUse}" was not previously initialised, and the version is not "schema".\nIt is likely that "schema" was not installed for this database.\nDo you wish to install "schema" instead of "${version}"?`,
+            default: true,
+          });
+          if (!response) {
+            logger.warn(`Installing "${version}" without "schema" installed.`);
+            return;
+          }
+        }
+
         // We force the installation to be the schema, since the database didn't exist before.
         version = 'schema';
+        logger.info(`Installing "schema" for database "${databaseToUse}"...`);
         return;
       });
-
-      logger.verbose('Checking if BAM is initialized...');
-      if (!await database.isBamInitialized()) {
-        try {
-          logger.info('BAM is not initialized, running init command...');
-          await initCommand({database: databaseToUse});
-        } catch (error) {
-          await database.disconnect();
-          throw error;
-        }
-      }
 
       logger.info('Running files...');
       await database.installFiles(versionJsonOption.fileList, version).catch(async error => {

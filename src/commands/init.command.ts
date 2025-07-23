@@ -53,7 +53,7 @@ export async function initCommand(options: InitOptions) {
     await fs.writeFile(path.resolve(process.cwd(), 'bam-config.yml'), configFile);
     logger.info(`bam-config.yml file created successfully.`);
   } else {
-    logger.info(`bam-config.yml file already exists. Using existing file to initialize database objects.`);
+    logger.info(`bam-config.yml file already exists. Using existing file to initialise database objects.`);
   }
 
   // Check if schema folder exists
@@ -105,8 +105,8 @@ export async function initCommand(options: InitOptions) {
     throw e;
   });
 
-  if (await database.isBamInitialized()) {
-    logger.info(`Database objects already initialized for "${databaseName}"`);
+  if (await database.isBamInitialised()) {
+    logger.info(`Database objects already initialised for "${databaseName}"`);
     return;
   }
 
@@ -119,18 +119,22 @@ export async function initCommand(options: InitOptions) {
   });
 
   await database.disconnect();
-  logger.verbose(`Database objects initialized for "${databaseName}"`);
+  logger.verbose(`Database objects initialised for "${databaseName}"`);
 
   logger.info(`Initialization completed successfully.`);
 }
 
 export async function promptInitCommand(options: InitOptions) {
-  const response = await inquirer.confirm({
-    message: `Database objects for "${options.database}" have not been initialized. Do you wish to initialize them now, by running "bam init --database ${options.database}"?`,
-    default: true,
-  });
-  if (response) {
-    await initCommand(options);
+  if (!optionsCache.has('opt:ci')) {
+    const response = await inquirer.confirm({
+      message: `Database objects for "${options.database}" have not been initialise. Do you wish to initialise them now, by running "bam init --database ${options.database}"?`,
+      default: true,
+    });
+    if (!response) {
+      return false;
+    }
   }
-  return response;
+
+  await initCommand(options);
+  return true;
 }

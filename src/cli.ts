@@ -66,13 +66,16 @@ export class CLI {
         'install',
         'Install database versions',
         async (yargs) => {
-          // At this stage the opt dynamic options are not configured yet.
-          // So when default is not passed to ${opt:stage} and ${opt:client} on `bam-config.yml`, the variable is returned as unresolved,
-          // Therefore, we suppress the warning and check for the unresolved values here.
-          const stage = await configManager.getConfigFromPath('stage', true);
-          const defaultStage = stage === 'opt:stage' ? undefined : stage;
-          const client = await configManager.getConfigFromPath('client', true);
-          const defaultClients = client === 'opt:client' ? [] : client ? [client] : [];
+          // At this stage the "opt" dynamic options are not configured yet.
+          // We need to load stage and client and force error on unresolved as they might be using dynamic values
+          // If the values cannot be resolved, we force it to be null so the command handles retrieving the value.
+          const defaultStage: string | null = await configManager.getConfigFromPath('stage', true)
+            .then(x => x ?? null)
+            .catch(() => null)
+          const client = await configManager.getConfigFromPath('client', true)
+            .then(x => x ?? null)
+            .catch(() => null);
+          const defaultClients = client ? [client] : [];
 
           return yargs
             .version(false)

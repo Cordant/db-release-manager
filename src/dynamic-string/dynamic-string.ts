@@ -47,7 +47,7 @@ export class DynamicString<Self extends object> {
   }
 
 
-  async resolve(value: string, suppressUnresolvedWarning = false): Promise<string> {
+  async resolve(value: string, errorOnUnresolvedWarning = false): Promise<string> {
     if (!value) return value;
 
     const matches = value.match(DynamicString.DYNAMIC_STRING_EXPRESSION_REGEX) ?? []; // Match multiple expressions ei. ${value}-${test} = ['${value}', '${test}']
@@ -81,7 +81,9 @@ export class DynamicString<Self extends object> {
         continue;
       }
 
-      if (!suppressUnresolvedWarning) {
+      if (errorOnUnresolvedWarning) {
+        throw new Error(`Could not resolve expression: "${expressionWithDefault}" in value: "${value}"`);
+      } else {
         logger.warn(`Could not resolve expression: "${expressionWithDefault}" in value: "${value}", skipping...`);
       }
     }

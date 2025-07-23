@@ -23,7 +23,7 @@ The DB Release Manager (also known as "bam" - Bertrand Application Manager) help
 
 ## Usage
 
-### Initialize a database
+### Initialise a database
 
 ```sh
 bam init --database <database-name>

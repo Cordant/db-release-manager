@@ -41,7 +41,7 @@ export class ConfigManager {
     }
   }
 
-  async getConfigFromPath(name: string, suppressUnresolvedWarning = false) {
+  async getConfigFromPath(name: string, errorOnUnresolvedWarning = false) {
     if (configManagerCache.has(`config:${name}`)) {
       return configManagerCache.get(`config:${name}`)!;
     }
@@ -50,7 +50,7 @@ export class ConfigManager {
       return undefined;
     }
 
-    const resolved = await new DynamicString(this.config).resolve(value, suppressUnresolvedWarning);
+    const resolved = await new DynamicString(this.config).resolve(value, errorOnUnresolvedWarning);
     configManagerCache.set(`config:${name}`, resolved);
     return resolved;
   }

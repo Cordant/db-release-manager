@@ -1,6 +1,6 @@
 [
   {
-    "databaseToUse": "postgres",
+    "databaseToUse": "${config:stage}_${config:client}",
     "fileList": [
       "..//postgres/schema/07-functions/error.sql"
     ],

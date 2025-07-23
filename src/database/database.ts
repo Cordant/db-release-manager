@@ -33,13 +33,13 @@ export class Database {
   dynamicString = new DynamicString();
 
   private readonly databaseName: string;
-  private isDatabaseInitialized = false;
+  private isDatabaseInitialised = false;
 
   constructor(database: string) {
     this.databaseName = database;
   }
 
-  private async initializeDatabase() {
+  private async initialiseDatabase() {
     const configManager = new ConfigManager();
     const host = await configManager.getConfigFromPath('database.host');
     if (!host) {
@@ -67,20 +67,20 @@ export class Database {
       this.database = pgPromise(connectionString.toString());
       databaseCache.set(connStr, this.database);
     }
-    this.isDatabaseInitialized = true;
+    this.isDatabaseInitialised = true;
   }
 
   async connect() {
     this.logger.verbose(`Connecting to database ${this.databaseName}`);
-    await this.initializeDatabase();
+    await this.initialiseDatabase();
     this.connection = await this.database!.connect();
     this.logger.verbose(`Connected to database ${this.databaseName}`);
     return this;
   }
 
   async installFiles(fileList: string[], version: string) {
-    if (!this.isDatabaseInitialized) {
-      throw new Error('Database is not initialized, please call the "Database.connect" method before calling "Database.installFiles"');
+    if (!this.isDatabaseInitialised) {
+      throw new Error('Database is not initialised, please call the "Database.connect" method before calling "Database.installFiles"');
     }
 
     const configManager = new ConfigManager();
@@ -164,8 +164,8 @@ export class Database {
   }
 
   async execute(cb: (transaction: PGPromise.ITask<{}>) => Promise<void>): Promise<void> {
-    if (!this.isDatabaseInitialized) {
-      throw new Error('Database is not initialized, please call the "connect" method before calling "execute"');
+    if (!this.isDatabaseInitialised) {
+      throw new Error('Database is not initialised, please call the "connect" method before calling "execute"');
     }
     await this.database!.tx(cb);
   }
@@ -182,8 +182,8 @@ export class Database {
   }
 
   async compareSchemas(localFileList: string[]) {
-    if (!this.isDatabaseInitialized) {
-      throw new Error('Database is not initialized, please call the "connect" method before calling "compareSchemas"');
+    if (!this.isDatabaseInitialised) {
+      throw new Error('Database is not initialised, please call the "connect" method before calling "compareSchemas"');
     }
     const configManager = new ConfigManager();
     const appName = await configManager.getConfigFromPath('name');
@@ -227,8 +227,8 @@ export class Database {
   }
 
   async removeFiles(removedFiles: string[]) {
-    if (!this.isDatabaseInitialized) {
-      throw new Error('Database is not initialized, please call the "connect" method before calling "removeFiles"');
+    if (!this.isDatabaseInitialised) {
+      throw new Error('Database is not initialised, please call the "connect" method before calling "removeFiles"');
     }
     const configManager = new ConfigManager();
     await this.database!.tx(async transaction => {
@@ -240,9 +240,9 @@ export class Database {
     });
   }
 
-  async isBamInitialized() {
-    if (!this.isDatabaseInitialized) {
-      throw new Error('Database is not initialized, please call the "connect" method before calling "isBamConfigured"');
+  async isBamInitialised() {
+    if (!this.isDatabaseInitialised) {
+      throw new Error('Database is not initialised, please call the "connect" method before calling "isBamConfigured"');
     }
     try {
       logger.verbose('Trying to open bam-config file');
@@ -280,8 +280,8 @@ export class Database {
     const postgres = new Database('postgres');
     await postgres.connect();
 
-    const isInitialized = await postgres.isBamInitialized();
-    if (!isInitialized) {
+    const isInitialised = await postgres.isBamInitialised();
+    if (!isInitialised) {
       const initialised = await promptInitCommand({database: 'postgres'});
       if (!initialised) {
         throw new Error('Database "postgres" is not configured for BAM, please configure it manually, by running the "bam init --database postgres" command.');
