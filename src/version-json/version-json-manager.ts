@@ -3,10 +3,8 @@ import * as _ from 'lodash-es';
 import {logger} from '../console/logger.js';
 import {Database} from '../database/database.js';
 import {DynamicString} from '../dynamic-string/index.js';
-import {initCommand} from '../commands/index.js';
-import {optionsCache} from '../options/options-cache.js';
+import {initCommand, promptInitCommand} from '../commands/index.js';
 import {RestartInstallationException} from '../exceptions/index.js';
-import * as inquirer from '@inquirer/prompts';
 
 export interface VersionJsonOptions {
   databaseToUse: string;
@@ -98,20 +96,10 @@ export class VersionJsonManager {
           throw error;
         }
 
-        if (!optionsCache.has('opt:ci')) {
-          const shouldCreateDatabase = await inquirer.confirm({
-            message: `Database "${databaseToUse}" does not exist, do you wish to create it?`,
-            default: true,
-          });
-
-          if (!shouldCreateDatabase) {
-            throw error;
-          }
+        const initialised = await promptInitCommand({database: databaseToUse});
+        if (!initialised) {
+          throw error;
         }
-
-        await database.create();
-        await database.connect();
-        logger.info(`Created database "${databaseToUse}"`);
 
         // We force the installation to be the schema, since the database didn't exist before.
         version = 'schema';

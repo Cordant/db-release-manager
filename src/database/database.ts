@@ -15,6 +15,7 @@ import {logger} from '../console/logger.js';
 import {getSchemaFilesQuery, insertOrUpdateSchemaFileQuery, removeSchemaFileQuery, SchemaFile} from './queries.js';
 import semver, {SemVer} from 'semver';
 import {PackageJsonManager} from '../package-json/index.js';
+import {promptInitCommand} from '../commands/index.js';
 
 const pgPromise = PGPromise();
 
@@ -273,8 +274,20 @@ export class Database {
   }
 
   async create() {
+    if (this.databaseName === 'postgres') {
+      throw new Error('Cannot create database "postgres"');
+    }
     const postgres = new Database('postgres');
     await postgres.connect();
+
+    const isInitialized = await postgres.isBamInitialized();
+    if (!isInitialized) {
+      const initialised = await promptInitCommand({database: 'postgres'});
+      if (!initialised) {
+        throw new Error('Database "postgres" is not configured for BAM, please configure it manually, by running the "bam init --database postgres" command.');
+      }
+    }
+
     await postgres.database!.none('CREATE DATABASE $1~', [this.databaseName]);
     await postgres.disconnect();
   }

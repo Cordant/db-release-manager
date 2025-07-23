@@ -9,6 +9,7 @@ import {Database, SchemaComparison} from '../database/database.js';
 import * as inquirer from '@inquirer/prompts';
 import {SkipSchemaCheckException} from '../exceptions/skip-schema-check-exception.js';
 import {DynamicString} from '../dynamic-string/index.js';
+import {promptInitCommand} from './init.command.js';
 
 export type CreateVersionOptions = {
   semver: semver.SemVer;
@@ -45,8 +46,15 @@ export async function createVersionCommand(options: CreateVersionOptions) {
       const database = new Database(databaseToUse);
       await database.connect().catch(async (e) => {
         if (e.message?.includes(`database "${databaseToUse}" does not exist`)) {
-          throw new Error(`Database "${databaseToUse}" does not exist, have you run the init command yet?`);
+          const initialised = await promptInitCommand({database: databaseToUse});
+          if (!initialised) {
+            throw e;
+          }
+
+          logger.info(`Resuming create-version command...`);
+          return await database.connect();
         }
+
         logger.error(`Failed to connect to database: ${databaseToUse}`);
         const confirmed = await inquirer.confirm({
           message: 'Do you wish to continue creating a version without checking for changes in the schema?',

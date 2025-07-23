@@ -6,8 +6,8 @@ import fs from 'node:fs/promises';
 import path from 'path';
 import {FileUtils} from '../file.utils.js';
 import * as inquirer from '@inquirer/prompts';
+import {Paths} from '../paths.js';
 import {optionsCache} from '../options/options-cache.js';
-import { Paths } from '../paths.js';
 
 interface InitOptions {
   database: string;
@@ -80,10 +80,14 @@ export async function initCommand(options: InitOptions) {
   const database = new Database(databaseName);
   await database.connect().catch(async (e) => {
     if (e.message?.includes(`database "${databaseName}" does not exist`)) {
+      if (databaseName === 'postgres') {
+        throw new Error(`BAM is not able to create a database named "postgres". Please make sure that the default "postgres" database exists and is accessible.`);
+      }
+
       if (!optionsCache.has('opt:ci')) {
         const confirmed = await inquirer.confirm({
           message: `Database "${databaseName}" does not exist, do you wish to create it?`,
-          default: false,
+          default: true,
         });
         if (!confirmed) {
           throw e;
@@ -93,9 +97,10 @@ export async function initCommand(options: InitOptions) {
       await database.create();
       logger.info(`Database "${databaseName}" created successfully.`);
 
-      logger.info(`Re-running init command...`);
+      logger.info(`Resuming init command...`);
       return await database.connect();
     }
+
     logger.error(`Failed to connect to database: ${databaseName}`);
     throw e;
   });
@@ -117,4 +122,15 @@ export async function initCommand(options: InitOptions) {
   logger.verbose(`Database objects initialized for "${databaseName}"`);
 
   logger.info(`Initialization completed successfully.`);
+}
+
+export async function promptInitCommand(options: InitOptions) {
+  const response = await inquirer.confirm({
+    message: `Database objects for "${options.database}" have not been initialized. Do you wish to initialize them now, by running "bam init --database ${options.database}"?`,
+    default: true,
+  });
+  if (response) {
+    await initCommand(options);
+  }
+  return response;
 }
