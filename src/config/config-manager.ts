@@ -24,7 +24,7 @@ export class ConfigManager {
       this.config = YAML.parse(fs.readFileSync(path.resolve(process.cwd(), configPath)).toString());
     } catch (e) {
       if (e instanceof Error) {
-        const { message, ...rest } = e;
+        const {message, ...rest} = e;
         throw new Error(`Could not read config file at ${configPath}: ${e.message}`, rest);
       }
       throw new Error(`Could not read config file at ${configPath}: ${e}`);
@@ -41,7 +41,7 @@ export class ConfigManager {
     }
   }
 
-  async getConfigFromPath(name: string) {
+  async getConfigFromPath(name: string, suppressUnresolvedWarning = false) {
     if (configManagerCache.has(`config:${name}`)) {
       return configManagerCache.get(`config:${name}`)!;
     }
@@ -50,7 +50,7 @@ export class ConfigManager {
       return undefined;
     }
 
-    const resolved = await new DynamicString(this.config).resolve(value)
+    const resolved = await new DynamicString(this.config).resolve(value, suppressUnresolvedWarning);
     configManagerCache.set(`config:${name}`, resolved);
     return resolved;
   }
@@ -65,7 +65,7 @@ export class ConfigManager {
       return undefined;
     }
 
-    const resolved = await new DynamicString(this.config).resolve(value)
+    const resolved = await new DynamicString(this.config).resolve(value);
     configManagerCache.set(`env:${path}`, resolved);
     return resolved;
   }
