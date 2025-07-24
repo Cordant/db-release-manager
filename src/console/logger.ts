@@ -15,7 +15,7 @@ const defaultLoggerOptions: winston.LoggerOptions = {
    * debug: 5,
    * silly: 6
    */
-  level: 'silly',
+  level: 'info',
   format: winston.format.cli(),
   transports: [consoleTransport],
 };

@@ -41,6 +41,7 @@ export class CLI {
             });
         },
         async (args) => {
+          logger.level = args.logLevel as string;
           await initCommand({database: args.database});
         },
       )
@@ -48,7 +49,6 @@ export class CLI {
         'create-version',
         'Create a database version',
         async (yargs) => {
-          const nextPossibleVersions = await versionManager.getNextPossibleVersions();
           return yargs
             .version(false)
             .showHelpOnFail(false)
@@ -59,6 +59,7 @@ export class CLI {
             });
         },
         async (args) => {
+          logger.level = args.logLevel as string;
           let {version} = args;
           if (!version) {
             const nextPossibleVersions = await versionManager.getNextPossibleVersions();
@@ -123,6 +124,7 @@ export class CLI {
             });
         },
         async (args) => {
+          logger.level = args.logLevel as string;
           const {ci, stage, clients} = args;
 
           if (!ci) {
@@ -194,10 +196,27 @@ export class CLI {
             .version(false)
             .showHelpOnFail(false);
         },
-        async () => {
+        async (args) => {
+          logger.level = args.logLevel as string;
           await updateHashCommand();
         },
       )
+      .option('log-level', {
+        alias: 'l',
+        describe: 'The log level to use',
+        type: 'string',
+        choices: [
+          'error',
+          'warn',
+          'info',
+          'http',
+          'verbose',
+          'debug',
+          'silly',
+        ],
+        default: 'info',
+        global: true,
+      })
       .demandCommand()
       .completion()
       .scriptName('bam')
