@@ -47,12 +47,10 @@ export async function createVersionCommand(options: CreateVersionOptions) {
       await database.connect().catch(async (e) => {
         if (e.message?.includes(`database "${databaseToUse}" does not exist`)) {
           const initialised = await promptInitCommand({database: databaseToUse});
-          if (!initialised) {
-            throw e;
+          if (initialised) {
+            logger.info(`Resuming create-version command...`);
+            return await database.connect();
           }
-
-          logger.info(`Resuming create-version command...`);
-          return await database.connect();
         }
 
         logger.error(`Failed to connect to database: ${databaseToUse}`);
@@ -115,16 +113,11 @@ export async function createVersionCommand(options: CreateVersionOptions) {
   }
 
 
-  // Update references in version.json
+  // Add any changed file to current/schema from schema/
   try {
-    logger.verbose(`Updating "current" references in ${currentVersionJsonPath.asRelative()}...`);
-    const versionJsonManager = new VersionJsonManager(currentVersionJsonPath.asAbsolute());
-    versionJsonManager.changeFileListVersion('current', version);
-    versionJsonManager.save();
-    logger.info(`Updated references in ${currentVersionJsonPath.asRelative()}`);
+    await new VersionJsonManager(currentVersionJsonPath.asAbsolute()).addFilesFromSchema('current/schema');
   } catch (error) {
-    logger.error(`Error updating version.json: ${error}`);
-    throw error;
+    logger.error(`Error updating "${currentVersionJsonPath.asRelative()}": ${error}`);
   }
 
   // Rename the current directory to the new version
@@ -136,6 +129,7 @@ export async function createVersionCommand(options: CreateVersionOptions) {
     throw error;
   }
 
+
   // Add any new files from current/version.json to schema/version.json
   try {
     const schemaVersionJsonManager = new VersionJsonManager(schemaVersionJsonPath.asAbsolute());
@@ -145,6 +139,7 @@ export async function createVersionCommand(options: CreateVersionOptions) {
     logger.error(`Error updating "${schemaVersionJsonPath.asRelative()}": ${error}`);
     throw error;
   }
+
 
   // Update package.json version
   const packageJsonPath = './package.json';

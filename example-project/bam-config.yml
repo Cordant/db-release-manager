@@ -1,5 +1,5 @@
 name: unique-name
-stage: ${opt:stage}
+stage: ${opt:stage, dev}
 client: ${opt:client, connect}
 database:
   host: 'local-bituhh.ddns.net'

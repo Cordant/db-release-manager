@@ -93,10 +93,22 @@ export class Database {
         this.logger.verbose(`Installing ${file}`);
 
 
-        const filePath = path.resolve(process.cwd(), file.split('..//')[1]);
-        if (!await FileUtils.exists(filePath)) {
-          this.logger.error(`File ${file} does not exist`);
-          throw new Error(`File "${file}" does not exist`);
+        let filePath = path.resolve(process.cwd(), file.split('..//')[1]);
+        let fileExists = await FileUtils.exists(filePath);
+
+        if (!fileExists) {
+          if (filePath.includes('/11-clients/')) {
+            filePath = filePath.replace(/\/11-clients\/[^/]+\//, `/11-clients/connect/`);
+            fileExists = await FileUtils.exists(filePath);
+            if (fileExists) {
+              this.logger.verbose(`File "${file}" exists in "${filePath}"`);
+            }
+          }
+
+          if (!fileExists) {
+            this.logger.error(`File "${file}" does not exist`);
+            throw new Error(`File "${file}" does not exist`);
+          }
         }
 
         const hash = await FileUtils.getHash(filePath);

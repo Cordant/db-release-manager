@@ -2,9 +2,6 @@
   {
     "databaseToUse": "${config:stage}_${config:client}",
     "fileList": [
-      "..//postgres/schema/07-functions/empty.sql",
-      "..//postgres/schema/07-functions/test.sql",
-      "..//postgres/schema/07-functions/error.sql",
       "..//postgres/schema/11-clients/${config:client}/test.sql"
     ]
   }

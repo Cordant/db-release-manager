@@ -7,6 +7,9 @@ import {promptInitCommand} from '../commands/index.js';
 import {RestartInstallationException} from '../exceptions/index.js';
 import * as inquirer from '@inquirer/prompts';
 import {optionsCache} from '../options/options-cache.js';
+import {glob} from 'node:fs/promises';
+import {FileUtils} from '../file.utils.js';
+import path from 'path';
 
 export interface VersionJsonOptions {
   databaseToUse: string;
@@ -26,17 +29,6 @@ export class VersionJsonManager {
 
   getVersionJson() {
     return this.versionJson;
-  }
-
-  changeFileListVersion(from: string, to: string): void {
-    for (let i = 0; i < this.versionJson.length; i++) {
-      const options = this.versionJson[i];
-
-      for (let j = 0; j < options.fileList.length; j++) {
-        const file = options.fileList[j];
-        this.versionJson[i].fileList[j] = file.replace(`postgres/release/${from}/`, `postgres/release/${to}/`);
-      }
-    }
   }
 
   save(path: string = this.versionJsonPath): void {
@@ -157,5 +149,29 @@ export class VersionJsonManager {
   private reload() {
     this.originalVersionJson = JSON.parse(fs.readFileSync(this.versionJsonPath).toString());
     this.versionJson = _.cloneDeep(this.originalVersionJson);
+  }
+
+  async addFilesFromSchema(to: string) {
+    logger.info(`Adding files from "schema" to "release/${to}"`);
+    for (const releaseOptions of this.versionJson) {
+      const filesToCopy = releaseOptions.fileList
+        .filter((file) => file.startsWith('..//postgres/schema/')) // Filter only to include schema files
+        .map((file) => file.replace('..//', './') // ..//postgres/schema/version.json to ./postgres/schema/version.json
+          .replace('${config:client}', '*') // ./postgres/schema/11-clients/${config:client}/file.sql to ./postgres/schema/11-clients/*/file.sql
+          .replace('${config:stage}', '*') // ./postgres/schema/11-clients/${config:client}/${config:stage}/file.sql to ./postgres/schema/11-clients/*/*/file.sql
+        );
+      for  (const fileToCopy of filesToCopy) {
+        const files = glob(fileToCopy)
+        for await (const file of files) {
+          // Copy a file to the destination version
+          const source = path.resolve('./' + file);
+          const unresolvedDestination = file.replace('postgres\\schema\\', `postgres\\release\\${to.replace('/', '\\')}\\`)
+          const destination = path.resolve(unresolvedDestination);
+          await FileUtils.copyFile(source, destination)
+          logger.verbose(`Copied "${source}" to "${destination}"`);
+        }
+      }
+    }
+    logger.info(`Added files from "schema" to "release/${to}"`);
   }
 }

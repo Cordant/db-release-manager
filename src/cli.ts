@@ -15,6 +15,16 @@ import {Paths} from './paths.js';
 export class CLI {
   async run() {
     const configManager = new ConfigManager();
+    try {
+      await configManager.getConfigFromPath('stage', true);
+    } catch (error) {
+      throw new Error('No default "stage" found.\nPlease set the "stage" property in the bam-config file, or if you are using a dynamic value.\nPlease ensure a default value is set when it the dynamic value is not resolvable during command execution!');
+    }
+    try {
+      await configManager.getConfigFromPath('client', true);
+    } catch (error) {
+      throw new Error('No default "client" found.\nPlease set the "client" property in the bam-config file, or if you are using a dynamic value.\nPlease ensure a default value is set when it the dynamic value is not resolvable during command execution!');
+    }
     await yargs(hideBin(process.argv))
       .command(
         'init',
@@ -46,7 +56,6 @@ export class CLI {
               alias: 'v',
               describe: 'The version to create',
               type: 'string',
-              choices: nextPossibleVersions,
             });
         },
         async (args) => {
@@ -58,6 +67,11 @@ export class CLI {
               choices: nextPossibleVersions,
             });
           }
+
+          if (!semver.valid(version)) {
+            throw new Error(`Version '${version}' is not a valid SemVer version`);
+          }
+
           logger.info(`Creating version '${version}'...`);
           await createVersionCommand({semver: new semver.SemVer(version)});
         },
@@ -66,15 +80,8 @@ export class CLI {
         'install',
         'Install database versions',
         async (yargs) => {
-          // At this stage the "opt" dynamic options are not configured yet.
-          // We need to load stage and client and force error on unresolved as they might be using dynamic values
-          // If the values cannot be resolved, we force it to be null so the command handles retrieving the value.
-          const defaultStage: string | null = await configManager.getConfigFromPath('stage', true)
-            .then(x => x ?? null)
-            .catch(() => null)
-          const client = await configManager.getConfigFromPath('client', true)
-            .then(x => x ?? null)
-            .catch(() => null);
+          const defaultStage = await configManager.getConfigFromPath('stage')
+          const client = await configManager.getConfigFromPath('client')
           const defaultClients = client ? [client] : [];
 
           return yargs

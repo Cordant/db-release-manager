@@ -1,6 +1,7 @@
 import {exec} from 'node:child_process';
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
+import path from 'path';
 
 export interface FileAndContent {
   path: string;
@@ -81,5 +82,11 @@ export class FileUtils {
       removedFiles: [],
     };
     await fs.writeFile(path, JSON.stringify([versionJson], null, 2));
+  }
+
+  static async copyFile(source: string, destination: string): Promise<void> {
+    await FileUtils.createDirectories(path.dirname(destination));
+
+    await fs.copyFile(source, destination);
   }
 }

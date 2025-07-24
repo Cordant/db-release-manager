@@ -1,0 +1,8 @@
+[
+  {
+    "databaseToUse": "${config:stage}_${config:client}",
+    "fileList": [
+      "..//postgres/schema/07-functions/test.sql"
+    ]
+  }
+]
