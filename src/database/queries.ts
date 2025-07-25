@@ -50,7 +50,8 @@ export const removeSchemaFileQuery = `DELETE
                                         AND scf_path = $2;`;
 
 export const getSchemaFilesQuery = `SELECT *
-                                    FROM "bam"."bamt_schema_files_scf"`;
+                                    FROM "bam"."bamt_schema_files_scf"
+                                    WHERE scf_app_name = $1;`;
 
 export const updateHashQuery = `
     UPDATE "bam"."bamt_schema_files_scf"

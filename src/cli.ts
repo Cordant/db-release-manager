@@ -16,12 +16,12 @@ export class CLI {
   async run() {
     const configManager = new ConfigManager();
     try {
-      await configManager.getConfigFromPath('stage', true);
+      await configManager.getConfigFromPath('stage', {errorOnUnresolvedWarning: true, skipCache: true});
     } catch (error) {
       throw new Error('No default "stage" found.\nPlease set the "stage" property in the bam-config file, or if you are using a dynamic value.\nPlease ensure a default value is set when it the dynamic value is not resolvable during command execution!');
     }
     try {
-      await configManager.getConfigFromPath('client', true);
+      await configManager.getConfigFromPath('client', {errorOnUnresolvedWarning: true, skipCache: true});
     } catch (error) {
       throw new Error('No default "client" found.\nPlease set the "client" property in the bam-config file, or if you are using a dynamic value.\nPlease ensure a default value is set when it the dynamic value is not resolvable during command execution!');
     }
@@ -81,8 +81,8 @@ export class CLI {
         'install',
         'Install database versions',
         async (yargs) => {
-          const defaultStage = await configManager.getConfigFromPath('stage')
-          const client = await configManager.getConfigFromPath('client')
+          const defaultStage = await configManager.getConfigFromPath('stage', {skipCache: true})
+          const client = await configManager.getConfigFromPath('client', {skipCache: true})
           const defaultClients = client ? [client] : [];
 
           return yargs

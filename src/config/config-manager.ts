@@ -41,17 +41,23 @@ export class ConfigManager {
     }
   }
 
-  async getConfigFromPath(name: string, errorOnUnresolvedWarning = false) {
-    if (configManagerCache.has(`config:${name}`)) {
+  async getConfigFromPath(name: string, {errorOnUnresolvedWarning = false, skipCache = false}: {
+    errorOnUnresolvedWarning?: boolean,
+    skipCache?: boolean
+  } = {}) {
+    if (!skipCache && configManagerCache.has(`config:${name}`)) {
       return configManagerCache.get(`config:${name}`)!;
     }
+
     const value = jsonpath.query(this.config, `$.${name}`)[0] as string | undefined;
     if (!value) {
       return undefined;
     }
 
     const resolved = await new DynamicString(this.config).resolve(value, errorOnUnresolvedWarning);
-    configManagerCache.set(`config:${name}`, resolved);
+    if (!skipCache) {
+      configManagerCache.set(`config:${name}`, resolved);
+    }
     return resolved;
   }
 

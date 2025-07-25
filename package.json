@@ -1,6 +1,6 @@
 {
   "name": "@connect/bam",
-  "version": "0.0.27",
+  "version": "0.0.31",
   "description": "DB Release Manager",
   "main": "dist/index.js",
   "scripts": {

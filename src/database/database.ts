@@ -200,7 +200,7 @@ export class Database {
     const configManager = new ConfigManager();
     const appName = await configManager.getConfigFromPath('name');
 
-    const remoteFileList: SchemaFile[] = await this.database!.any(getSchemaFilesQuery);
+    const remoteFileList: SchemaFile[] = await this.database!.any(getSchemaFilesQuery, [appName!]);
     logger.silly(`Installed schema: ${JSON.stringify(remoteFileList, null, 2)}`);
 
     const comparison: SchemaComparison = {
