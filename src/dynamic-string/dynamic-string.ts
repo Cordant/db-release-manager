@@ -4,6 +4,7 @@ import {dynamicStringCache, Expression} from './dynamic-string-cache.js';
 import {optionsCache} from '../options/options-cache.js';
 import {SecretsManager, SSM} from '../aws/index.js';
 import {logger} from '../console/logger.js';
+import {parse, ParsedExpression} from './parser/index.js';
 
 
 export class DynamicString<Self extends object> {
@@ -39,141 +40,187 @@ export class DynamicString<Self extends object> {
    *
    * ${set-ssm:'SELECT pk_id FROM table', /connect/${stage}/dev}
    */
-  private static readonly DYNAMIC_STRING_EXPRESSION_REGEX = /\$\{([^{}]*(?:\$\{[^{}]*(?:\$\{[^{}]*\}[^{}]*)*\}[^{}]*)*)\}/g;
-  private static readonly SSM_EXPRESSION_REGEX = /^ssm(?:\(\s*(?<profile>[\w-]+)(?:,\s*(?<region>[\w-]+))?\s*\))?:(?<value>.+)(?<jsonpath>\$\..)?$/;
-  private static readonly SECRETS_MANAGER_EXPRESSION_REGEX = /^secretsmanager(?:\(\s*(?<profile>[\w-]+)(?:,\s*(?<region>[\w-]+))?\s*\))?:(?<value>.+)(?<jsonpath>\$\..)?$/;
-
   constructor(private self: Self = {} as Self) {
+  }
+
+  private buildRawValue(action: string, options: string[], operation: string, fallback?: string): string {
+    let value = action;
+    if (options.length > 0) {
+      value += `(${options.join(',')})`;
+    }
+    if (operation) {
+      value += `:${operation}`;
+    }
+    if (fallback) {
+      value += `, ${fallback}`;
+    }
+    return value;
+  }
+
+  private async runAction(action: string, options: string[], operation: string, fallback?: string): Promise<string | undefined> {
+    logger.verbose(`Running action: "${action}", options: "${options.join(',')}", operation: "${operation}", fallback: "${fallback}"`);
+    const raw = this.buildRawValue(action, options, operation, fallback);
+
+    if (dynamicStringCache.has(raw as Expression)) {
+      return dynamicStringCache.get(raw as Expression);
+    }
+
+    switch (action) {
+      case 'ssm': {
+        const [profile, region] = options;
+        const [value, jsonpath] = operation.split('$.');
+        logger.verbose(`Retrieving SSM Parameter "${value}"`);
+
+        try {
+          const ssm = new SSM(profile, region);
+          let parameterValue = await ssm.getParameter(value);
+          if (!parameterValue) {
+            return undefined;
+          }
+
+          if (jsonpath) {
+            const jsonValue = JSON.parse(parameterValue);
+            const values = jp.query(jsonValue, jsonpath);
+            parameterValue = values[0] as string | undefined;
+          }
+
+          if (parameterValue) {
+            dynamicStringCache.set(raw as Expression, parameterValue);
+          }
+
+          return parameterValue;
+        } catch (error) {
+          logger.warn(`Error retrieving SSM parameter: ${value}`, error);
+          if (fallback) {
+            return fallback;
+          }
+
+          return undefined;
+        }
+      }
+      case 'secretsmanager': {
+        const [profile, region] = options;
+        const [value, jsonpath] = operation.split('$.');
+        logger.verbose(`Retrieving Secret "${value}"`);
+
+        try {
+          const secretsManager = new SecretsManager(profile, region);
+          let secretValue = await secretsManager.getSecret(value);
+
+          if (!secretValue) {
+            return undefined;
+          }
+
+          if (jsonpath) {
+            const jsonValue = JSON.parse(secretValue);
+            const values = jp.query(jsonValue, jsonpath);
+            secretValue = values[0] as string | undefined;
+          }
+
+          if (secretValue) {
+            dynamicStringCache.set(raw as Expression, secretValue);
+          }
+
+          return secretValue;
+        } catch (error) {
+          logger.warn(`Error retrieving secret: ${value}`, error);
+          if (fallback) {
+            return fallback;
+          }
+          return undefined;
+        }
+      }
+      case 'opt': {
+        logger.verbose(`Retrieving CLI Option: ${operation}`);
+        const value = optionsCache.get(`opt:${operation}` as Expression);
+        if (!value && fallback) {
+          return fallback;
+        }
+        if (value) {
+          dynamicStringCache.set(raw as Expression, value);
+        }
+        return value;
+      }
+      case 'config': {
+        logger.verbose(`Retrieving value "${operation}" from config`);
+        const value = await new ConfigManager().getConfigFromPath(operation);
+        if (!value && fallback) {
+          return fallback;
+        }
+        if (value) {
+          dynamicStringCache.set(raw as Expression, value);
+        }
+        return value;
+      }
+      case 'env': {
+        logger.verbose(`Retrieving value "${operation}" from environment`);
+        const value = await new ConfigManager().getEnvFromPath(operation);
+        if (!value && fallback) {
+          return fallback;
+        }
+        if (value) {
+          dynamicStringCache.set(raw as Expression, value);
+        }
+        return value;
+      }
+      case 'self': {
+        logger.verbose(`Retrieving value "${operation}" from self`);
+        const values = jp.query(this.self, `$.${operation}`);
+        const value = values[0] as string | undefined;
+        if (!value && fallback) {
+          return fallback;
+        }
+        if (value) {
+          dynamicStringCache.set(raw as Expression, value);
+        }
+        return value;
+      }
+      default:
+        throw new Error(`Unknown action: ${action}`);
+    }
+  }
+
+  async resolveExpression(expression: ParsedExpression, errorOnUnresolvedWarning = false): Promise<string | undefined> {
+    for (const childExpression of expression.expressions) {
+      const resolved = await this.resolveExpression(childExpression);
+      if (!resolved) {
+        return undefined;
+      }
+
+      // Update parent with the resolved value
+      const raw = childExpression.raw;
+      expression.options = expression.options.map(x => x.replaceAll(raw, resolved));
+      expression.operation = expression.operation.replaceAll(raw, resolved);
+      if (expression.fallback) {
+        expression.fallback = expression.fallback.replaceAll(raw, resolved);
+      }
+    }
+
+    logger.verbose(`Resolving expression: ${expression.raw}`);
+    return await this.runAction(expression.action, expression.options, expression.operation, expression.fallback);
   }
 
 
   async resolve(value: string, errorOnUnresolvedWarning = false): Promise<string> {
     if (!value) return value;
 
-    const matches = value.match(DynamicString.DYNAMIC_STRING_EXPRESSION_REGEX) ?? []; // Match multiple expressions ei. ${value}-${test} = ['${value}', '${test}']
-    logger.silly(`Found ${matches.length} expressions in value: "${value}"`);
-    for (const match of matches) {
-      logger.silly(`Resolving expression: "${match}"`);
-      const expressionWithDefault = await this.resolve(match.substring(2, match.length - 1)) as Expression;
-      logger.silly(`Resolved expression: "${expressionWithDefault}"`);
 
-      // Expression can have default values separated by comma ei. ${value, default} = value, default = ['value', 'default']
-      const [expression, fallbackValue] = expressionWithDefault.split(',').map(x => x.trim()) as Expression[];
-      logger.silly(`Resolved expression: "${expressionWithDefault}" with fallback value: "${fallbackValue}"`);
-      if (dynamicStringCache.has(expression)) {
-        logger.silly(`Expression "${expression}" is cached, skipping...`);
-        value = value.replace(match, dynamicStringCache.get(expression)!);
+    const result = parse(value);
+    for (const expression of result.expressions) {
+      const raw = expression.raw;
+      const resolved = await this.resolveExpression(expression, errorOnUnresolvedWarning);
+      if (!resolved) {
+        if (errorOnUnresolvedWarning) {
+          throw new Error(`Unresolved expression: ${expression.raw}`);
+        } else {
+          logger.warn(`Unresolved expression: ${expression.raw}`);
+        }
         continue;
       }
 
-      const resolved = await this.resolveExpression(expression, !!fallbackValue);
-      logger.silly(`Resolved expression: "${expression}" to value: "${resolved}"`);
-      if (resolved) {
-        logger.silly(`Expression "${expression}" resolved to value: "${resolved}", caching...`);
-        dynamicStringCache.set(expression, resolved);
-        value = value.replace(match, resolved);
-        continue;
-      }
-
-      if (fallbackValue) {
-        logger.silly(`Expression "${expression}" resolved to fallback value: "${fallbackValue}"`);
-        value = value.replace(match, fallbackValue);
-        continue;
-      }
-
-      if (errorOnUnresolvedWarning) {
-        throw new Error(`Could not resolve expression: "${expressionWithDefault}" in value: "${value}"`);
-      } else {
-        logger.warn(`Could not resolve expression: "${expressionWithDefault}" in value: "${value}", skipping...`);
-      }
+      value = value.replaceAll(raw, resolved);
     }
 
     return value;
-  }
-
-  private async resolveExpression(expression: Expression, hasDefault: boolean = false): Promise<string | undefined> {
-    const ssmMatch = expression.match(DynamicString.SSM_EXPRESSION_REGEX);
-    if (ssmMatch) {
-      const {profile, region, value, jsonpath} = ssmMatch.groups!;
-      logger.verbose(`Retrieving SSM Parameter "${value}"`);
-
-      try {
-        const ssm = new SSM(profile, region);
-        const parameterValue = await ssm.getParameter(value);
-
-        if (!parameterValue) {
-          return undefined;
-        }
-
-        if (jsonpath) {
-          const jsonValue = JSON.parse(parameterValue);
-          const values = jp.query(jsonValue, jsonpath);
-          return values[0] as string | undefined;
-        }
-
-        return parameterValue;
-      } catch (error) {
-        logger.warn(`Error retrieving SSM parameter: ${value}`, error);
-        return undefined;
-      }
-    }
-
-    const secretsManagerMatch = expression.match(DynamicString.SECRETS_MANAGER_EXPRESSION_REGEX);
-    if (secretsManagerMatch) {
-      const {profile, region, value, jsonpath} = secretsManagerMatch.groups!;
-      logger.verbose(`Retrieving Secret "${value}"`);
-
-      try {
-        const secretsManager = new SecretsManager(profile, region);
-        const secretValue = await secretsManager.getSecret(value);
-
-        if (!secretValue) {
-          return undefined;
-        }
-
-        if (jsonpath) {
-          const jsonValue = JSON.parse(secretValue);
-          const values = jp.query(jsonValue, jsonpath);
-          return values[0] as string | undefined;
-        }
-
-        return secretValue;
-      } catch (error) {
-        logger.warn(`Error retrieving secret: ${value}`, error);
-        return undefined;
-      }
-    }
-
-    if (expression.startsWith('opt:')) {
-      const option = expression.substring(4).trim();
-      logger.verbose(`Retrieving CLI Option: ${option}`);
-      return optionsCache.get(`opt:${option.trim()}` as Expression);
-    }
-
-    if (expression.startsWith('config:')) {
-      const configPath = expression.substring(7).trim();
-      logger.verbose(`Retrieving value "${configPath}" from config`);
-      return new ConfigManager().getConfigFromPath(configPath);
-    }
-
-    if (expression.startsWith('self:')) {
-      const selfPath = expression.substring(5).trim();
-      logger.verbose(`Retrieving value "${selfPath}" from self`);
-      const values = jp.query(this.self, `$.${selfPath}`);
-      const value = values[0] as string | undefined;
-      if (!value) {
-        return undefined;
-      }
-      return this.resolve(value);
-    }
-
-    if (expression.startsWith('env:')) {
-      const envPath = expression.substring(4).trim();
-      logger.verbose(`Retrieving value "${envPath}" from environment`);
-      return new ConfigManager().getEnvFromPath(envPath);
-    }
-
-    logger.verbose(`Retrieving value "${expression}" from environment`);
-    return new ConfigManager().getEnvFromPath(expression.trim());
   }
 }

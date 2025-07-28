@@ -42,6 +42,7 @@ export class CLI {
         },
         async (args) => {
           logger.level = args.logLevel as string;
+          this.setAwsConfig(args);
           await initCommand({database: args.database});
         },
       )
@@ -60,6 +61,8 @@ export class CLI {
         },
         async (args) => {
           logger.level = args.logLevel as string;
+          this.setAwsConfig(args);
+
           let {version} = args;
           if (!version) {
             const nextPossibleVersions = await versionManager.getNextPossibleVersions();
@@ -81,8 +84,8 @@ export class CLI {
         'install',
         'Install database versions',
         async (yargs) => {
-          const defaultStage = await configManager.getConfigFromPath('stage', {skipCache: true})
-          const client = await configManager.getConfigFromPath('client', {skipCache: true})
+          const defaultStage = await configManager.getConfigFromPath('stage', {skipCache: true});
+          const client = await configManager.getConfigFromPath('client', {skipCache: true});
           const defaultClients = client ? [client] : [];
 
           return yargs
@@ -125,8 +128,8 @@ export class CLI {
         },
         async (args) => {
           logger.level = args.logLevel as string;
+          this.setAwsConfig(args);
           const {ci, stage, clients} = args;
-
           if (!ci) {
             const choices = [];
 
@@ -198,6 +201,7 @@ export class CLI {
         },
         async (args) => {
           logger.level = args.logLevel as string;
+          this.setAwsConfig(args);
           await updateHashCommand();
         },
       )
@@ -215,6 +219,16 @@ export class CLI {
           'silly',
         ],
         default: 'info',
+        global: true,
+      })
+      .option('profile', {
+        describe: 'AWS Profile',
+        type: 'string',
+        global: true,
+      })
+      .option('region', {
+        describe: 'AWS Region',
+        type: 'string',
         global: true,
       })
       .demandCommand()
@@ -290,6 +304,18 @@ export class CLI {
     }
 
     return true;
+  }
+
+  setAwsConfig<T extends {[key: string]: any}>(args: T) {
+    const {profile, region} = args;
+    if (profile) {
+      process.env.AWS_PROFILE = profile;
+      optionsCache.set('opt:profile', profile);
+    }
+    if (region) {
+      process.env.AWS_REGION = region;
+      optionsCache.set('opt:region', region);
+    }
   }
 
 }
