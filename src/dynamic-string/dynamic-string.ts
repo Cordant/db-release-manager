@@ -162,18 +162,18 @@ export class DynamicString<Self extends object> {
     }
 
     logger.verbose(`Resolving expression: ${expression.raw}`);
-    const resolved = await this.runAction(expression.action, expression.options, expression.operation, expression.fallback);
+    let resolved = await this.runAction(expression.action, expression.options, expression.operation, expression.fallback);
     if (!resolved) {
-      if (errorOnUnresolvedWarning) {
-        throw new Error(`Unresolved expression: ${expression.raw}`);
-      } else {
-        logger.warn(`Unresolved expression: ${expression.raw}`);
-      }
-
       if (expression.fallback) {
+        logger.warn(`Unresolved expression: ${expression.raw}, using fallback: ${expression.fallback}`);
         return expression.fallback;
       }
 
+      if (errorOnUnresolvedWarning) {
+        throw new Error(`Unresolved expression: ${expression.raw}`);
+      }
+
+      logger.warn(`Unresolved expression: ${expression.raw}`);
       return undefined;
     }
     return resolved;
