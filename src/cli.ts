@@ -147,10 +147,16 @@ export class CLI {
               choices.push('schema');
             }
 
-            args.version = await inquirer.select<string>({
-              message: 'Please selected the version to install',
-              choices,
-            });
+            if (!args.version) {
+              args.version = await inquirer.select<string>({
+                message: 'Please selected the version to install',
+                choices,
+              });
+            } else {
+              if (!choices.includes(args.version)) {
+                throw new Error(`Version "${args.version}" is not a valid version. The specify one of the following "${choices.join('", "')}"`)
+              }
+            }
           }
 
           if (!this.isValidStage(stage, 'Stage must be provided. Use --stage or set the "stage" property in the bam-config file')) {
@@ -306,7 +312,7 @@ export class CLI {
     return true;
   }
 
-  setAwsConfig<T extends {[key: string]: any}>(args: T) {
+  setAwsConfig<T extends { [key: string]: any }>(args: T) {
     const {profile, region} = args;
     if (profile) {
       process.env.AWS_PROFILE = profile;
