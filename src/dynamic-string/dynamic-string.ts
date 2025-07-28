@@ -91,10 +91,6 @@ export class DynamicString<Self extends object> {
           return parameterValue;
         } catch (error) {
           logger.warn(`Error retrieving SSM parameter: ${value}`, error);
-          if (fallback) {
-            return fallback;
-          }
-
           return undefined;
         }
       }
@@ -124,56 +120,25 @@ export class DynamicString<Self extends object> {
           return secretValue;
         } catch (error) {
           logger.warn(`Error retrieving secret: ${value}`, error);
-          if (fallback) {
-            return fallback;
-          }
           return undefined;
         }
       }
       case 'opt': {
         logger.verbose(`Retrieving CLI Option: ${operation}`);
-        const value = optionsCache.get(`opt:${operation}` as Expression);
-        if (!value && fallback) {
-          return fallback;
-        }
-        if (value) {
-          dynamicStringCache.set(raw as Expression, value);
-        }
-        return value;
+        return optionsCache.get(`opt:${operation}` as Expression);
       }
       case 'config': {
         logger.verbose(`Retrieving value "${operation}" from config`);
-        const value = await new ConfigManager().getConfigFromPath(operation);
-        if (!value && fallback) {
-          return fallback;
-        }
-        if (value) {
-          dynamicStringCache.set(raw as Expression, value);
-        }
-        return value;
+        return await new ConfigManager().getConfigFromPath(operation);
       }
       case 'env': {
         logger.verbose(`Retrieving value "${operation}" from environment`);
-        const value = await new ConfigManager().getEnvFromPath(operation);
-        if (!value && fallback) {
-          return fallback;
-        }
-        if (value) {
-          dynamicStringCache.set(raw as Expression, value);
-        }
-        return value;
+        return await new ConfigManager().getEnvFromPath(operation);
       }
       case 'self': {
         logger.verbose(`Retrieving value "${operation}" from self`);
         const values = jp.query(this.self, `$.${operation}`);
-        const value = values[0] as string | undefined;
-        if (!value && fallback) {
-          return fallback;
-        }
-        if (value) {
-          dynamicStringCache.set(raw as Expression, value);
-        }
-        return value;
+        return values[0] as string | undefined;
       }
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -197,7 +162,21 @@ export class DynamicString<Self extends object> {
     }
 
     logger.verbose(`Resolving expression: ${expression.raw}`);
-    return await this.runAction(expression.action, expression.options, expression.operation, expression.fallback);
+    const resolved = await this.runAction(expression.action, expression.options, expression.operation, expression.fallback);
+    if (!resolved) {
+      if (errorOnUnresolvedWarning) {
+        throw new Error(`Unresolved expression: ${expression.raw}`);
+      } else {
+        logger.warn(`Unresolved expression: ${expression.raw}`);
+      }
+
+      if (expression.fallback) {
+        return expression.fallback;
+      }
+
+      return undefined;
+    }
+    return resolved;
   }
 
 
@@ -210,11 +189,6 @@ export class DynamicString<Self extends object> {
       const raw = expression.raw;
       const resolved = await this.resolveExpression(expression, errorOnUnresolvedWarning);
       if (!resolved) {
-        if (errorOnUnresolvedWarning) {
-          throw new Error(`Unresolved expression: ${expression.raw}`);
-        } else {
-          logger.warn(`Unresolved expression: ${expression.raw}`);
-        }
         continue;
       }
 
