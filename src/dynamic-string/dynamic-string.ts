@@ -138,7 +138,11 @@ export class DynamicString<Self extends object> {
       case 'self': {
         logger.verbose(`Retrieving value "${operation}" from self`);
         const values = jp.query(this.self, `$.${operation}`);
-        return values[0] as string | undefined;
+        let value =  values[0] as string | undefined;
+        if (!value) {
+          return undefined;
+        }
+        return this.resolve(value);
       }
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -198,3 +202,13 @@ export class DynamicString<Self extends object> {
     return value;
   }
 }
+
+const dynamicString = new DynamicString({
+  stage: 'dev',
+  database: {
+    secrets: {
+      dev: 'arn:aws:secretsmanager:eu-west-1:283243146402:secret:/connect/dev/database/root-neQckj',
+    },
+  }
+});
+dynamicString.resolve('${secretsmanager:${self:database.secrets.${self:stage}}$.username}').then(console.log)

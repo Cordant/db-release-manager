@@ -30,16 +30,11 @@ export class SecretsManager {
    * @returns The secret value or undefined if not found
    */
   async getSecret(secretId: string): Promise<string | undefined> {
-    try {
-      const command = new GetSecretValueCommand({
-        SecretId: secretId,
-      });
+    const command = new GetSecretValueCommand({
+      SecretId: secretId,
+    });
 
-      const response = await this.client.send(command);
-      return response.SecretString;
-    } catch (error) {
-      console.warn(`Failed to retrieve secret: ${secretId}`, error);
-      return undefined;
-    }
+    const response = await this.client.send(command);
+    return response.SecretString;
   }
 }

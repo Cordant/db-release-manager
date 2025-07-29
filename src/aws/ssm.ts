@@ -30,17 +30,12 @@ export class SSM {
    * @returns The parameter value or undefined if not found
    */
   async getParameter(parameterName: string): Promise<string | undefined> {
-    try {
-      const command = new GetParameterCommand({
-        Name: parameterName,
-        WithDecryption: true,
-      });
+    const command = new GetParameterCommand({
+      Name: parameterName,
+      WithDecryption: true,
+    });
 
-      const response = await this.client.send(command);
-      return response.Parameter?.Value;
-    } catch (error) {
-      console.warn(`Failed to retrieve SSM parameter: ${parameterName}`, error);
-      return undefined;
-    }
+    const response = await this.client.send(command);
+    return response.Parameter?.Value;
   }
 }

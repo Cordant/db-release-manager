@@ -2,9 +2,9 @@ name: unique-name
 stage: ${opt:stage, dev}
 client: ${opt:client, connect}
 database:
-  host: 'local-bituhh.ddns.net'
-  username: 'postgres'
-  password: '140496'
+  host: ${secretsmanager:arn:aws:secretsmanager:eu-west-1:597019876904:secret:/connect/uat/database/root-WfzjsB$.host}
+  username: ${secretsmanager:arn:aws:secretsmanager:eu-west-1:597019876904:secret:/connect/uat/database/root-WfzjsB$.username}
+  password: ${secretsmanager:arn:aws:secretsmanager:eu-west-1:597019876904:secret:/connect/uat/database/root-WfzjsB$.password}
 env:
   error:
     message: 'This is an error!'
