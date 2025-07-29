@@ -157,11 +157,14 @@ export class Lexer {
     while (!this.endOfInput() && this.peek() !== ',' && this.peek() !== '}') {
       const char = this.advance();
       if (char === '$' && this.peek() === '{') {
-        this.tokens.push({
-          type: TokenType.OPERATION,
-          value: this.input.substring(startPosition, this.index - 1).trim(),
-          position: startPosition,
-        });
+        const operation = this.input.substring(startPosition, this.index - 1).trim();
+        if (!operation) {
+          this.tokens.push({
+            type: TokenType.OPERATION,
+            value: operation,
+            position: startPosition,
+          });
+        }
 
         // Nested expression
         this.advance();
@@ -185,15 +188,18 @@ export class Lexer {
     this.advance();
 
     const operation = this.input.substring(startPosition, this.index - 1).trim();
-    if (!operation) {
+    const previousTokenIsExpressionEnd = this.peekPrevious() === '}';
+    if (!operation && !previousTokenIsExpressionEnd) {
       return false;
     }
 
-    this.tokens.push({
-      type: TokenType.OPERATION,
-      value: operation,
-      position: startPosition,
-    });
+    if (operation) {
+      this.tokens.push({
+        type: TokenType.OPERATION,
+        value: operation,
+        position: startPosition,
+      });
+    }
 
     if (this.peekPrevious() === ',') {
       this.tokens.push({

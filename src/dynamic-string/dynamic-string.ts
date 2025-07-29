@@ -202,13 +202,3 @@ export class DynamicString<Self extends object> {
     return value;
   }
 }
-
-const dynamicString = new DynamicString({
-  stage: 'dev',
-  database: {
-    secrets: {
-      dev: 'arn:aws:secretsmanager:eu-west-1:283243146402:secret:/connect/dev/database/root-neQckj',
-    },
-  }
-});
-dynamicString.resolve('${secretsmanager:${self:database.secrets.${self:stage}}$.username}').then(console.log)
