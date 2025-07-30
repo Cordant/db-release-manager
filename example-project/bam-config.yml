@@ -2,9 +2,8 @@ name: unique-name
 stage: ${opt:stage, dev}
 client: ${opt:client, connect}
 database:
-  host: ${secretsmanager:arn:aws:secretsmanager:eu-west-1:597019876904:secret:/connect/uat/database/root-WfzjsB$.host}
-  username: ${secretsmanager:arn:aws:secretsmanager:eu-west-1:597019876904:secret:/connect/uat/database/root-WfzjsB$.username}
-  password: ${secretsmanager:arn:aws:secretsmanager:eu-west-1:597019876904:secret:/connect/uat/database/root-WfzjsB$.password}
+  host: 'local-bituhh.ddns.net'
+  username: 'postgres'
+  password: '140496'
 env:
-  error:
-    message: 'This is an error!'
+  no-reply-email: no-reply@${ssm:/connect/${self:stage}/email/domain}

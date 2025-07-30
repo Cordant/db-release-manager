@@ -68,7 +68,7 @@ export class DynamicString<Self extends object> {
     switch (action) {
       case 'ssm': {
         const [profile, region] = options;
-        const [value, jsonpath] = operation.split('$.');
+        const [value, jsonpath] = operation.split('$');
         logger.verbose(`Retrieving SSM Parameter "${value}"`);
 
         try {
@@ -80,7 +80,7 @@ export class DynamicString<Self extends object> {
 
           if (jsonpath) {
             const jsonValue = JSON.parse(parameterValue);
-            const values = jp.query(jsonValue, jsonpath);
+            const values = jp.query(jsonValue, `$${jsonpath}`);
             parameterValue = values[0] as string | undefined;
           }
 
@@ -96,7 +96,7 @@ export class DynamicString<Self extends object> {
       }
       case 'secretsmanager': {
         const [profile, region] = options;
-        const [value, jsonpath] = operation.split('$.');
+        const [value, jsonpath] = operation.split('$');
         logger.verbose(`Retrieving Secret "${value}"`);
 
         try {
@@ -109,7 +109,7 @@ export class DynamicString<Self extends object> {
 
           if (jsonpath) {
             const jsonValue = JSON.parse(secretValue);
-            const values = jp.query(jsonValue, jsonpath);
+            const values = jp.query(jsonValue, `$${jsonpath}`);
             secretValue = values[0] as string | undefined;
           }
 

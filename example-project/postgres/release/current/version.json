@@ -2,6 +2,7 @@
   {
     "databaseToUse": "${config:stage}_${config:client}",
     "fileList": [
+      "..//postgres/schema/test.sql"
     ]
   }
 ]

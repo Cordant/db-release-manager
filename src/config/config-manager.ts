@@ -49,7 +49,7 @@ export class ConfigManager {
       return configManagerCache.get(`config:${name}`)!;
     }
 
-    const value = jsonpath.query(this.config, `$.${name}`)[0] as string | undefined;
+    const value = jsonpath.query(this.config, `$${this.fromDotToJsonPath(name)}`)[0] as string | undefined;
     if (!value) {
       return undefined;
     }
@@ -66,7 +66,7 @@ export class ConfigManager {
       return configManagerCache.get(`env:${path}`)!;
     }
 
-    const value = jsonpath.query(this.config.env ?? {}, `$.${path}`)[0] as string | undefined;
+    const value = jsonpath.query(this.config.env ?? {}, `$${this.fromDotToJsonPath(path)}`)[0] as string | undefined;
     if (!value) {
       return undefined;
     }
@@ -74,5 +74,17 @@ export class ConfigManager {
     const resolved = await new DynamicString(this.config).resolve(value);
     configManagerCache.set(`env:${path}`, resolved);
     return resolved;
+  }
+
+  private fromDotToJsonPath(path: string) {
+    return path.split('.').map(x => {
+      if (x.startsWith('\'') && x.endsWith('\'')) {
+        return `[${x}]`;
+      }
+      if (x.startsWith('"') && x.endsWith('"')) {
+        return `[${x}]`;
+      }
+      return `["${x}"]`;
+    }).join('')
   }
 }
